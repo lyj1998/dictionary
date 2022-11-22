@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>历史连接记录</title>
+<!--    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://cdn.staticfile.org/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>-->
+    <link rel="stylesheet" href="resources/css/bootstrap.min.css">
+    <script src="resources/scripts/jquery.min.js"></script>
+    <script src="resources/scripts/bootstrap.min.js"></script>
+</head>
+<body>
+
+
+
+<div class="container">
+        <tr th:each="info,hi : ${history}">
+
+
+
+                    <div class="row">
+                        <th th:each="info_sub: ${info}">
+                            <div  th:onclick="openConnetct([[${info_sub}]]);"   class="col-md-2"
+                                 style="background-color: #dedef8;box-shadow: inset 5px -5px 10px 5px #66A968; cursor:pointer;padding: 10px;">
+                                <p>
+                                    <p th:text="${info_sub}" hidden></p>
+                                    数据库类型:<span th:text="${info_sub.selector}"></span><br>
+                                    数据库:<span th:text="${info_sub.database}"></span><br>
+                                    IP:<span th:text="${info_sub.ip}"></span><br>
+                                    端口:<span th:text="${info_sub.port}"></span><br>
+                                    <!--<span th:text="${info_sub.password}"></span>-->
+                                    用户名:<span th:text="${info_sub.username}"></span>
+
+                                </p>
+                            </div>
+                            <div class="col-sm-1 col-md-1"></div>
+
+                        </th>
+                    </div>
+                    <p style="padding: 20px"><span></span></p>
+<!--                    <p>这里是行间距<span th:text="${hi.count}"></span></p>-->
+
+
+
+
+
+        </tr>
+
+</div>
+
+
+</div>
+
+<form id = "myform" action="login.action" hidden>
+    <input id="selector" name="selector" type="text" value="" />
+    <input id="ip" name="ip" type="text" value="" />
+    <input id="port" name="port" type="text" value="" />
+    <input id="database" name="database" type="text" value="" />
+    <input id="username" name="username" type="text" value="" />
+    <input id="password" name="password" type="text" value="" />
+</form>
+
+<script type="text/javascript">
+        function openConnetct(value) {
+
+            $("#selector").val(value.selector);
+            $("#ip").val(value.ip);
+            $("#port").val(value.port);
+            $("#database").val(value.database);
+            $("#username").val(value.username);
+            $("#password").val(value.password);
+
+
+            sessionStorage.setItem("ip", value.ip);
+            sessionStorage.setItem("port", value.port);
+            sessionStorage.setItem("database", value.database);
+            sessionStorage.setItem("username", value.username);
+            sessionStorage.setItem("password", value.password);
+            sessionStorage.setItem("selector",value.selector)
+
+            $("#myform").submit();
+
+            /*if (confirm("您确定要删除~" + value.selector + " ~吗?")) {
+                return true;
+            } else {
+                return false;
+            }*/
+            /*alert(value.selector+ " " + value.ip+ " " +value.port + " " + value.database+ " " +value.username + " " +value.password )
+            var str = "selector="+value.selector + " &" + "ip="+value.ip + " &"+ "port="+value.port + " &"+ "database="+value.database + " &"
+                + "username="+value.username + " &"+ "password="+value.password ;
+            window.location.href="login.action?"+str;*/
+            //进行连接
+            /*$.ajax({
+                type: 'POST',
+                url: 'login.action',
+                dataType: "json",
+                data: {
+                    selector : value.selector,
+                    ip  :  value.ip,
+                    port  :  value.port,
+                    database  :  value.database,
+                    username  :  value.username,
+                    password  :  value.password
+                },
+                success: function () {
+                    location.href="/";
+                }
+
+            });*/
+        }
+</script>
+</body>
+</html>
