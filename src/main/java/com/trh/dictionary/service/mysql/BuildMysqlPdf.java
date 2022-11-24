@@ -317,6 +317,51 @@ public class BuildMysqlPdf {
     }
 
     /**
+     * 获取数据库所有表信息
+     *
+     * @param connection
+     * @param dbName
+     * @return
+     */
+    public static List<TableInfo> getAllTables(Connection connection, String dbName) {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        List<TableInfo> tables = new ArrayList<>();
+        try {
+            //获取表名
+            statement = connection.createStatement();
+            String sql = "SELECT table_name, table_comment \n" +
+                    "from information_schema.`TABLES`\n" +
+                    "where TABLE_SCHEMA = '" + dbName + "'"+
+                    "ORDER BY TABLE_NAME";
+           // String sql = "show full tables FROM `" + dbName + "`"+"where Table_type = 'BASE TABLE'";
+            resultSet = statement.executeQuery(sql);
+            while (resultSet.next()) {
+                TableInfo tableInfo = new TableInfo();
+                //表名
+                String tableName = resultSet.getString(1);
+
+                //表注释
+                String tableComment = resultSet.getString(2);
+                tableInfo.setTableName(tableName);
+                tableInfo.setTableComment(tableComment);
+                tables.add(tableInfo);
+            }
+            return tables;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return tables;
+        } finally {
+            try {
+                ConnectionFactory.releaseResource(connection, null
+                        , resultSet, statement);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
      * 获取单个表全部信息
      *
      * @param connection   数据库连接

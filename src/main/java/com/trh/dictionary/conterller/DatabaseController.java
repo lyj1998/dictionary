@@ -2,6 +2,7 @@ package com.trh.dictionary.conterller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.JSONPObject;
+import com.sun.net.httpserver.Authenticator;
 import com.trh.dictionary.bean.HistoryConnet;
 import com.trh.dictionary.bean.TableInfo;
 import com.trh.dictionary.dao.ConnectionFactory;
@@ -23,6 +24,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
+import sun.security.provider.certpath.SunCertPathBuilder;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
@@ -69,19 +71,18 @@ public class DatabaseController {
         return "history";
     }
 
-
-
-    @RequestMapping("/login.action")
-    public String login(Model model, String selector, String ip, String port, String password, String username, String database) {
+    @RequestMapping(path = "/login.action", method = RequestMethod.POST)
+    @ResponseBody
+    public String loginDB(Model model, String selector, String ip, String port, String password, String username, String database) {
         List<TableInfo> tableInfo = null;
         try {
             String markdown = null;
+            Boolean success = false;
             switch (selector) {
                 case "mysql":
                     //得到生成数据
                     String url = "jdbc:mysql://" + ip + ":" + port + "/" + database + "?useSSL=false&serverTimezone=UTC&characterEncoding=utf8";
-                    Connection connection = ConnectionFactory.getConnection(url, username, password, "mySql");
-                    tableInfo = BuildMysqlPdf.getBuildPdfTableData(BuildMysqlPdf.getTables(connection, database));
+                    success = ConnectionFactory.testConnection(url, username, password, "mySql");
                     break;
                 case "oracle":
                     tableInfo = OracleDatabase.getTableInfo("jdbc:oracle:thin:@//" + ip + ":" + port + "/" + database + "", username, password);
@@ -97,29 +98,69 @@ public class DatabaseController {
                     tableInfo = Db2Executor.getDB2Tables(ip, Integer.valueOf(port), database.toUpperCase(), username, password);
                     break;
             }
-
-
-            if (tableInfo !=null ){
-
-                if (tableInfo.size() == 0) {
-                    model.addAttribute("markdown", "## 数据库无数据");
-                    return "markdown";
-                }
-                markdown = BuildPDF.writeMarkdown(tableInfo);
+            if(success){
+                return "table";
+            }else {
+                return "redirect:/index";
             }
-
-
-            model.addAttribute("markdown", markdown);
-            //记录历史连接
-            HistoryConnet historyConnet = new HistoryConnet( selector,  ip,  port,  password,  username,  database);
-            recordHistory(markdown,historyConnet);
-            return "markdown";
         } catch (Exception e) {
-            logger.error("error==>"+e);
-            model.addAttribute("markdown", "### "+e.getMessage());
-            return "markdown";
+            logger.error("login==>"+e.getMessage());
+            return "redirect:/index";
         }
     }
+
+
+
+
+//    @RequestMapping("/login.action")
+//    public String login(Model model, String selector, String ip, String port, String password, String username, String database) {
+//        List<TableInfo> tableInfo = null;
+//        try {
+//            String markdown = null;
+//            switch (selector) {
+//                case "mysql":
+//                    //得到生成数据
+//                    String url = "jdbc:mysql://" + ip + ":" + port + "/" + database + "?useSSL=false&serverTimezone=UTC&characterEncoding=utf8";
+//                    Connection connection = ConnectionFactory.getConnection(url, username, password, "mySql");
+//                    tableInfo = BuildMysqlPdf.getBuildPdfTableData(BuildMysqlPdf.getTables(connection, database));
+//                    break;
+//                case "oracle":
+//                    tableInfo = OracleDatabase.getTableInfo("jdbc:oracle:thin:@//" + ip + ":" + port + "/" + database + "", username, password);
+//                    break;
+//                case "SQL server":
+//                    markdown = WriteSqlserverMarkDown.MakeMarkdownString(ip, database, port, username, password);
+//                    break;
+//
+//                case "PostgreSQL":
+//                    markdown = BuildPgSqlPdf.getPgMarkdown(ip, database, port, username, password);
+//                    break;
+//                case "DB2":
+//                    tableInfo = Db2Executor.getDB2Tables(ip, Integer.valueOf(port), database.toUpperCase(), username, password);
+//                    break;
+//            }
+//
+//
+//            if (tableInfo !=null ){
+//
+//                if (tableInfo.size() == 0) {
+//                    model.addAttribute("markdown", "## 数据库无数据");
+//                    return "markdown";
+//                }
+//                markdown = BuildPDF.writeMarkdown(tableInfo);
+//            }
+//
+//
+//            model.addAttribute("markdown", markdown);
+//            //记录历史连接
+//            HistoryConnet historyConnet = new HistoryConnet( selector,  ip,  port,  password,  username,  database);
+//            recordHistory(markdown,historyConnet);
+//            return "markdown";
+//        } catch (Exception e) {
+//            logger.error("error==>"+e);
+//            model.addAttribute("markdown", "### "+e.getMessage());
+//            return "markdown";
+//        }
+//    }
 
     @RequestMapping("/getDataBaseNameList")
     @ResponseBody

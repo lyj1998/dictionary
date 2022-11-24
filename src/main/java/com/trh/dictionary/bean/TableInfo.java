@@ -13,6 +13,12 @@ public class TableInfo {
      * 表名
      */
     private String tableName= "";
+
+    /**
+     * 表注释
+     */
+    private String tableComment = "";
+
     /**
      * 字符集
      */
@@ -55,6 +61,17 @@ public class TableInfo {
         return orderType;
     }
 
+    public String getTableComment() {
+        return tableComment;
+    }
+
+    public void setTableComment(String tableComment) {
+        if(tableComment==null){
+            tableComment = "";
+        }
+        this.tableComment = tableComment;
+    }
+
     public void setOrderType(String orderType) {
         if(orderType==null){
             orderType = "";
@@ -90,5 +107,18 @@ public class TableInfo {
 
     public void setColumnList(List<ColumnInfo> columnList) {
         this.columnList = columnList;
+    }
+
+    @Override
+    public String toString() {
+        return "TableInfo{" +
+                "tableName='" + tableName + '\'' +
+                ", tableComment='" + tableComment + '\'' +
+                ", orderType='" + orderType + '\'' +
+                ", storageEngine='" + storageEngine + '\'' +
+                ", description='" + description + '\'' +
+                ", columnList=" + columnList +
+                ", indexInfoList=" + indexInfoList +
+                '}';
     }
 }

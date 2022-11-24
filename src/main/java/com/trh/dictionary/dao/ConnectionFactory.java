@@ -49,6 +49,48 @@ public class ConnectionFactory {
     }
 
     /**
+     * 判断数据库是否连接成功
+     *
+     * @param url        地址
+     * @param userName   用户名
+     * @param passWord   密码
+     * @param driverName 驱动名：mySql、pgSql
+     * @return
+     */
+    public static Boolean testConnection(String url, String userName, String passWord, String driverName) throws Exception {
+        Connection connection = null;
+        //创建驱动
+        if (mySql.equals(driverName)) {
+            //5.1.X
+//            Class.forName("org.gjt.mm.mysql.Driver");
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+        } else if (pgSql.equals(driverName)) {
+            Class.forName("org.postgresql.Driver");
+        }
+        logger.info("-----------------------测试连接数据库");
+        //创建连接
+        try {
+            connection = DriverManager.getConnection(url, userName, passWord);
+            if (connection!=null){
+                return true;
+            }else {
+                return false;
+            }
+        }catch (Exception e){
+            logger.error("connect fail:"+e.getMessage());
+            return false;
+        }finally {
+            try {
+                connection.close();
+            }catch (Exception e){
+                logger.error("Close connection error");
+            }
+        }
+    }
+
+
+    /**
      * 释放资源
      *
      * @param connection        连接
