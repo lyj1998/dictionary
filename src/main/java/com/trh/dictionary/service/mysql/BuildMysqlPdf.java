@@ -1,9 +1,12 @@
 package com.trh.dictionary.service.mysql;
 
+import cn.hutool.core.util.ReUtil;
+import cn.hutool.core.util.StrUtil;
 import com.trh.dictionary.bean.ColumnInfo;
 import com.trh.dictionary.bean.IndexInfo;
 import com.trh.dictionary.bean.TableInfo;
 import com.trh.dictionary.dao.ConnectionFactory;
+import com.trh.dictionary.dto.TableInfoDto;
 import com.trh.dictionary.service.BuildPDF;
 import com.trh.dictionary.util.ColumnBasicEnum;
 import com.trh.dictionary.util.MyStringUtils;
@@ -316,8 +319,84 @@ public class BuildMysqlPdf {
         }
     }
 
+
+//    /**
+//     * 获取数据库所有表信息以及数量
+//     *
+//     * @param connection
+//     * @param dbName
+//     * @return
+//     */
+//    public static List<TableInfo> getAllTables(Connection connection, String dbName, String search,Integer offset, Integer perPageCount) {
+//        Statement statement = null;
+//        ResultSet resultSet = null;
+//        String sql = "";
+//        String sqlCount = "";
+//        List<TableInfo> tables = new ArrayList<>();
+//        Integer count = 0;
+//        try {
+//            //获取表名
+//            statement = connection.createStatement();
+//            //模糊查询
+//            if (StrUtil.isNotEmpty(search)){
+//                //去空格+转义正则关键字
+//                search = ReUtil.escape(search);
+//                 sql = "SELECT table_name, table_comment\n" +
+//                        "from information_schema.TABLES\n" +
+//                        "where TABLE_SCHEMA = '"+dbName+"'\n" +
+//                        "and (table_name like '%"+search+"%' or TABLE_COMMENT like '%+search+%')\n" +
+//                        "ORDER BY TABLE_NAME"+
+//                         "limit "+offset+", "+perPageCount+"";
+//
+//                 sqlCount = "SELECT count(1)\n" +
+//                         "from information_schema.TABLES\n" +
+//                         "where TABLE_SCHEMA = '"+dbName+"'\n" +
+//                         "and (table_name like '%"+search+"%' or TABLE_COMMENT like '%+search+%')\n" +
+//                         "ORDER BY TABLE_NAME";
+//            }else {
+//                 sql = "SELECT table_name, table_comment \n" +
+//                        "from information_schema.`TABLES`\n" +
+//                        "where TABLE_SCHEMA = '" + dbName + "'"+
+//                        "ORDER BY TABLE_NAME"+
+//                        "limit "+offset+", "+perPageCount+"";
+//
+//                sqlCount = "SELECT count(1) \n" +
+//                        "from information_schema.`TABLES`\n" +
+//                        "where TABLE_SCHEMA = '" + dbName + "'"+
+//                        "ORDER BY TABLE_NAME";
+//            }
+//           // String sql = "show full tables FROM `" + dbName + "`"+"where Table_type = 'BASE TABLE'";
+//            resultSet = statement.executeQuery(sql);
+//            while (resultSet.next()) {
+//                TableInfo tableInfo = new TableInfo();
+//                //表名
+//                String tableName = resultSet.getString(1);
+//                //表注释
+//                String tableComment = resultSet.getString(2);
+//                tableInfo.setTableName(tableName);
+//                tableInfo.setTableComment(tableComment);
+//                tables.add(tableInfo);
+//            }
+//            resultSet = statement.executeQuery(sqlCount);
+//            if (resultSet.next()){
+//                count = resultSet.getInt(1);
+//            }
+//            return tables;
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return tables;
+//        } finally {
+//            try {
+//                ConnectionFactory.releaseResource(connection, null
+//                        , resultSet, statement);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
+
     /**
-     * 获取数据库所有表信息
+     * 获取数据库所有表信息以及数量
      *
      * @param connection
      * @param dbName
@@ -326,21 +405,34 @@ public class BuildMysqlPdf {
     public static List<TableInfo> getAllTables(Connection connection, String dbName) {
         Statement statement = null;
         ResultSet resultSet = null;
+        String sql = "";
         List<TableInfo> tables = new ArrayList<>();
         try {
             //获取表名
             statement = connection.createStatement();
-            String sql = "SELECT table_name, table_comment \n" +
+            //查询所有表
+            sql = "SELECT table_name, table_comment \n" +
                     "from information_schema.`TABLES`\n" +
                     "where TABLE_SCHEMA = '" + dbName + "'"+
                     "ORDER BY TABLE_NAME";
-           // String sql = "show full tables FROM `" + dbName + "`"+"where Table_type = 'BASE TABLE'";
+            // String sql = "show full tables FROM `" + dbName + "`"+"where Table_type = 'BASE TABLE'";
             resultSet = statement.executeQuery(sql);
             while (resultSet.next()) {
                 TableInfo tableInfo = new TableInfo();
                 //表名
                 String tableName = resultSet.getString(1);
-
+                //判断表中是否含有主键
+                String sqlPrimary = "SELECT count(column_name)\n" +
+                        "FROM INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` \n" +
+                        "WHERE table_name='"+tableName+"' \n" +
+                        "AND CONSTRAINT_SCHEMA='"+dbName+"'\n" +
+                        "AND constraint_name='PRIMARY'";
+                int primaryInfo = getPrimaryInfo(connection, sqlPrimary);
+                if (primaryInfo>=1){
+                    tableInfo.setTablePri("Y");
+                }else {
+                    tableInfo.setTablePri("N");
+                }
                 //表注释
                 String tableComment = resultSet.getString(2);
                 tableInfo.setTableName(tableName);
@@ -359,6 +451,48 @@ public class BuildMysqlPdf {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * 类转换
+     * @param tableInfoList
+     * @return
+     */
+    public static List<TableInfoDto> toTableInfoDto(List<TableInfo> tableInfoList, String dbName){
+        List<TableInfoDto> resList = new ArrayList<>(tableInfoList.size());
+        tableInfoList.forEach(item->{
+            TableInfoDto tableInfoDto = new TableInfoDto();
+            tableInfoDto.setDbName(dbName);
+            tableInfoDto.setTableName(item.getTableName());
+            tableInfoDto.setTableComment(item.getTableComment());
+            tableInfoDto.setTablePri(item.getTablePri());
+            resList.add(tableInfoDto);
+        });
+        return resList;
+    }
+
+    /**
+     * 判断表中是否存在主键
+     * @param connection
+     * @param sqlPri
+     * @return
+     */
+    public static int getPrimaryInfo(Connection connection, String sqlPri){
+        Statement statement = null;
+        int priCount = 0;
+        try {
+            statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sqlPri);
+            while (resultSet.next()) {
+                priCount = resultSet.getInt(1);
+            }
+            statement.close();
+            resultSet.close();
+            return priCount;
+        } catch (Exception e) {
+            logger.error("获取表主键信息失败{}",e);
+        }
+        return priCount;
     }
 
     /**
@@ -424,4 +558,20 @@ public class BuildMysqlPdf {
     }
 
 
+    public static void MakeMysqlExcel(String ip, String dbName, String port, String userName, String password, HttpServletResponse res) {
+        try {
+            //得到生成数据
+            String url = "jdbc:mysql://" + ip + ":" + port + "/" + dbName + "?useSSL=false&serverTimezone=UTC";
+            Connection connection = ConnectionFactory.getConnection(url, userName, password, "mySql");
+            List<TableInfo> list = getAllTables(connection, dbName);
+            List<TableInfoDto> tableInfoDtos = toTableInfoDto(list, dbName);
+            if (tableInfoDtos.size() == 0) {
+                return;
+            }
+            //输出流
+            BuildPDF.getDocumentBuild(list, res);
+        } catch (Exception e) {
+            logger.error("生成MysqlPDF失败.......", e);
+        }
+    }
 }

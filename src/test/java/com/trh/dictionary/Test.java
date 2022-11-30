@@ -1,5 +1,7 @@
 package com.trh.dictionary;
 
+import cn.hutool.core.util.ObjectUtil;
+
 import com.trh.dictionary.bean.TableInfo;
 import com.trh.dictionary.dao.ConnectionFactory;
 import com.trh.dictionary.service.BuildPDF;
@@ -16,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -117,6 +120,7 @@ public class Test {
         String url = "jdbc:mysql://localhost:3306/srb_core?useSSL=false&serverTimezone=UTC&characterEncoding=utf8";
         Connection conn = null;
         Statement stmt = null;
+        Integer count = 0;
 
         try {
             //注册jdbc驱动
@@ -132,23 +136,50 @@ public class Test {
             System.out.println("输入sql语句后并执行...");
             stmt = conn.createStatement();
             String sql;
-            sql = "select * from emp";// 这里填写需要的sql语句
-            //执行sql语句
-            ResultSet rs = stmt.executeQuery(sql);
+            Integer offset = 3;
+            Integer limit = 10;
+            sql = "SELECT table_name, table_comment \n" +
+                    "from information_schema.`TABLES`\n" +
+                    "where TABLE_SCHEMA = 'srb_core'"+
+                    "ORDER BY TABLE_NAME "+
+                    "limit "+offset+", "+limit+"";
 
+            String sqlCount = "SELECT count(1) \n" +
+                    "from information_schema.`TABLES`\n" +
+                    "where TABLE_SCHEMA = 'srb_core'"+
+                    "ORDER BY TABLE_NAME";
+
+            //执行sql语句
+            ResultSet resultSet = stmt.executeQuery(sql);
+           List<TableInfo> tables = new ArrayList<>();
             // 展开结果集数据库
-            while(rs.next()){
-                // 通过字段检索
-                int id  = rs.getInt("id");//获取id值
-                String name = rs.getString("name");//获取name值
-                int age = rs.getInt("age");
-                // 输出数据
-                System.out.println("id: " + id);
-                System.out.println("名字: " + name);
-                System.out.println("年龄" + age);
+            while (resultSet.next()) {
+                TableInfo tableInfo = new TableInfo();
+                //表名
+                String tableName = resultSet.getString(1);
+
+                //表注释
+                String tableComment = resultSet.getString(2);
+                tableInfo.setTableName(tableName);
+                tableInfo.setTableComment(tableComment);
+                tables.add(tableInfo);
             }
+
+            System.out.println(tables.size());
+            System.out.println(tables);
+            resultSet = stmt.executeQuery(sqlCount);
+            if (resultSet.next()){
+                count = resultSet.getInt(1);
+            }
+            System.out.println(count);
+
+            //开启分页
+//            PageHelper.startPage(1, 10);
+//            //得到对应的分页对象
+//            PageInfo<TableInfo> pageInfo = new PageInfo<>(tables);
+//            System.out.println(pageInfo);
             // 完成后关闭
-            rs.close();
+            resultSet.close();
             stmt.close();
             conn.close();
         }catch(SQLException se){

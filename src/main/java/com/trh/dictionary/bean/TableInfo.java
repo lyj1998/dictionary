@@ -6,7 +6,7 @@ import java.util.List;
  * 表信息
  *
  * @author
- * @create 2019-07-25 14:17
+ * @create 2022-11-28 14:17
  */
 public class TableInfo {
     /**
@@ -18,6 +18,19 @@ public class TableInfo {
      * 表注释
      */
     private String tableComment = "";
+
+    public String getTablePri() {
+        return tablePri;
+    }
+
+    public void setTablePri(String tablePri) {
+        this.tablePri = tablePri;
+    }
+
+    /**
+     * 是否含有主键
+     */
+    private String tablePri = "";
 
     /**
      * 字符集
@@ -108,17 +121,5 @@ public class TableInfo {
     public void setColumnList(List<ColumnInfo> columnList) {
         this.columnList = columnList;
     }
-
-    @Override
-    public String toString() {
-        return "TableInfo{" +
-                "tableName='" + tableName + '\'' +
-                ", tableComment='" + tableComment + '\'' +
-                ", orderType='" + orderType + '\'' +
-                ", storageEngine='" + storageEngine + '\'' +
-                ", description='" + description + '\'' +
-                ", columnList=" + columnList +
-                ", indexInfoList=" + indexInfoList +
-                '}';
-    }
+    
 }

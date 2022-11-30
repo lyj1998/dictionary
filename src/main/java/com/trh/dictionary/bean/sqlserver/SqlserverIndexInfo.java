@@ -1,8 +1,8 @@
 package com.trh.dictionary.bean.sqlserver;
 
 /**
- * @author zhou
- * @create 2019-08-29 16:13
+ * @author LuYuJie
+ * @create 2022-08-29 16:13
  * @description:
  */
 public class SqlserverIndexInfo {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>数据字典展示</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
@@ -89,7 +89,6 @@
                         <p><span>便捷数据字典展示&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> <span><a href="" style="color: #3ad900"></a></span></p>
                     </div>
                 </div>
-
                 <!-- 2 (文本框) -->
                 <div id="u5" class="ax_default text_field" data-label="2">
                     <img id="u5_img" class="img " src="images/index/2_u5.svg"/>
@@ -240,6 +239,7 @@
         $('#submit').bind("click", function () {
             submitFrom();
         });
+
         function submitFrom() {
             var ip = $("#u5_input").val();
             var port = $("#u6_input").val();
