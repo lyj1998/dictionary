@@ -3,13 +3,6 @@
 #### 介绍
 鉴于企业开发过程中数据字典难维护，我们团队参考阿里云数据库管理中的数据字典展示，进行了一个克隆。当前 4.0 版本支持 MySQL SQLSERVER ORACLE DB2 PG 数据库的数据字典生成，关联您的数据库后，可以自动生成 PDF和markdown 文件格式的数据字典文档,也可以直接运行项目支持在线
 同步数据库数据字典，支持在线选择不同的数据库，得到该库相应的所有表信息列表，支持在线PDF文件下载。
-码云下载地址：https://gitee.com/cdtrh_group/database-dictionary
-官方QQ群：256612400
-
-{**推荐软件**
- jxhAutoTool 是一款专门为springjdbc开发的自动化生成器软件，目前只支持MYSQL数据库 
- [https://gitee.com/cdtrh/jxhAutoTool.git](https://gitee.com/cdtrh/jxhAutoTool.git)
- }
 
 #### 使用说明
 DOCKER镜像：

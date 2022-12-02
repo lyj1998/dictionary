@@ -4,7 +4,7 @@ package com.trh.dictionary.bean;
  * 列信息
  *
  * @author
- * @create 2019-07-25 14:23
+ * @create 2022-12-01 14:23
  */
 public class ColumnInfo {
     /**
@@ -16,7 +16,7 @@ public class ColumnInfo {
      */
     private int order;
     /**
-     * 类型
+     * 字段英文名
      */
     private String name= "";
     /**
@@ -36,12 +36,17 @@ public class ColumnInfo {
      */
     private String description= "";
 
-    public void setIsIndex(int isIndex) {
-        this.isIndex = isIndex;
-    }
+    /**
+     * 是否为枚举值
+     */
+    private String isEnum = "";
 
     public int getIsIndex() {
         return isIndex;
+    }
+
+    public void setIsIndex(int isIndex) {
+        this.isIndex = isIndex;
     }
 
     public int getOrder() {
@@ -105,5 +110,13 @@ public class ColumnInfo {
             description = "";
         }
         this.description = description;
+    }
+
+    public String getIsEnum() {
+        return isEnum;
+    }
+
+    public void setIsEnum(String isEnum) {
+        this.isEnum = isEnum;
     }
 }

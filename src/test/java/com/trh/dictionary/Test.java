@@ -11,6 +11,7 @@ import com.trh.dictionary.service.oracleservice.OracleDatabase;
 import com.trh.dictionary.service.postgreSQL.BuildPgSqlPdf;
 import com.trh.dictionary.service.sqlserver.BuildSqlserverPDF;
 import com.trh.dictionary.service.sqlserver.WriteSqlserverMarkDown;
+import com.trh.dictionary.util.PatternUtil;
 import com.trh.dictionary.util.SqlExecutor;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -20,6 +21,8 @@ import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author
@@ -201,6 +204,29 @@ public class Test {
             }
         }
         System.out.println("\n执行成功！");
+    }
+
+    @org.junit.Test
+    public void testPattern(){
+        String s = "性别（1:男 0:女）";
+        Matcher m = Pattern.compile("(\\d+)(\\s*|-{1,}|\\uff1a+|:{1,})(\\w+|[\\u4e00-\\u9fa5]+)").matcher(s);//        //每个匹配到的子串分组的个数
+        //每个匹配到的子串分组的个数
+        int group = m.groupCount();
+        System.out.println(group);
+        //如果输入传有多个可能被匹配到的子串，这里会进行多次匹配
+        int count = 0;
+        while (m.find()){
+            s = s.replaceAll(m.group(), "");
+            System.out.println(PatternUtil.clearComment(s));
+        }
+//        while (m.find()){
+//            System.out.println("匹配到的子串:"+m.group());
+//            count++;
+//            for (int i = 1; i<=group; i++){
+//                System.out.println("分组"+i+":"+m.group(i));
+//            }
+//        }
+        System.out.println(count);
     }
 
 

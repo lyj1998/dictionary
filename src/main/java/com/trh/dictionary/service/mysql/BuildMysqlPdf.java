@@ -2,17 +2,18 @@ package com.trh.dictionary.service.mysql;
 
 import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
+import com.sun.xml.internal.ws.db.DatabindingImpl;
 import com.trh.dictionary.bean.ColumnInfo;
 import com.trh.dictionary.bean.IndexInfo;
 import com.trh.dictionary.bean.TableInfo;
 import com.trh.dictionary.dao.ConnectionFactory;
+import com.trh.dictionary.dto.ColumnInfoDto;
+import com.trh.dictionary.dto.EnumCodeInfoDto;
 import com.trh.dictionary.dto.TableInfoDto;
 import com.trh.dictionary.service.BuildPDF;
-import com.trh.dictionary.util.ColumnBasicEnum;
-import com.trh.dictionary.util.MyStringUtils;
-import com.trh.dictionary.util.SignEnum;
-import com.trh.dictionary.util.TableBasicEnum;
+import com.trh.dictionary.util.*;
 import org.apache.commons.io.FileUtils;
+import org.apache.poi.ss.formula.functions.T;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -29,12 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * mysqlpdf生成
  *
  * @author
- * @create 2019-09-09 11:10
+ * @create 2022-12-01 11:10
  */
 public class BuildMysqlPdf {
     static Logger logger = LoggerFactory.getLogger(BuildMysqlPdf.class);
@@ -441,15 +443,8 @@ public class BuildMysqlPdf {
             }
             return tables;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("导出表级信息失败{}",e);
             return tables;
-        } finally {
-            try {
-                ConnectionFactory.releaseResource(connection, null
-                        , resultSet, statement);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
         }
     }
 
@@ -559,19 +554,143 @@ public class BuildMysqlPdf {
 
 
     public static void MakeMysqlExcel(String ip, String dbName, String port, String userName, String password, HttpServletResponse res) {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        Connection connection = null;
         try {
             //得到生成数据
             String url = "jdbc:mysql://" + ip + ":" + port + "/" + dbName + "?useSSL=false&serverTimezone=UTC";
-            Connection connection = ConnectionFactory.getConnection(url, userName, password, "mySql");
+            connection = ConnectionFactory.getConnection(url, userName, password, "mySql");
+            //获取表级信息
             List<TableInfo> list = getAllTables(connection, dbName);
             List<TableInfoDto> tableInfoDtos = toTableInfoDto(list, dbName);
             if (tableInfoDtos.size() == 0) {
                 return;
             }
-            //输出流
-            BuildPDF.getDocumentBuild(list, res);
+            //获取字段级信息
+            List<ColumnInfoDto> columnList  = getAllTablesBaseInfo(connection, dbName);
+            //获取枚举值信息
+            List<List<EnumCodeInfoDto>> doubleList = new ArrayList<>();
+            columnList.forEach(item->{
+                if ("Y".equals(item.getColumnIsEnum())){
+                    EnumCodeInfoDto enumCodeInfoDto = new EnumCodeInfoDto();
+                    enumCodeInfoDto.setDbName(item.getDbName());
+                    enumCodeInfoDto.setTableName(item.getTableName());
+                    enumCodeInfoDto.setColumnName(item.getColumnName());
+                    Map<String, Object> map = PatternUtil.getEnum(item.getOldColumnName(), enumCodeInfoDto, 3);
+                    List<EnumCodeInfoDto> dictList = (List<EnumCodeInfoDto>) map.get("dictList");
+                    doubleList.add(dictList);
+                }
+            });
+            List<EnumCodeInfoDto> dictLists = doubleList.stream().flatMap(List::stream).collect(Collectors.toList());
+            //类集合
+            List<List<?>> dataLists = new ArrayList<>();
+            dataLists.add(tableInfoDtos);
+            dataLists.add(columnList);
+            dataLists.add(dictLists);
+            List<Class> clazz = new ArrayList<>();
+            clazz.add(TableInfoDto.class);
+            clazz.add(ColumnInfoDto.class);
+            clazz.add(EnumCodeInfoDto.class);
+            List<String> sheetList = new ArrayList<>();
+            sheetList.add("表级信息");
+            sheetList.add("字段级信息");
+            sheetList.add("字段代码信息");
+            EasyExcelUtil.exportExcelWeb(res, dataLists, clazz, dbName, sheetList);
         } catch (Exception e) {
-            logger.error("生成MysqlPDF失败.......", e);
+            logger.error("导出数据字典失败{}.......", e);
+        }finally {
+            try {
+                ConnectionFactory.releaseResource(connection, null
+                        , resultSet, statement);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * 获取所有表的字段级别信息
+     * @param connection
+     * @param dbName
+     * @return
+     */
+    private static List<ColumnInfoDto> getAllTablesBaseInfo(Connection connection, String dbName) {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String sql = "";
+        List<ColumnInfoDto> resList = new ArrayList<>();
+        try {
+            //获取表名
+            statement = connection.createStatement();
+            //查询所有表
+            sql = "SELECT table_name, ordinal_position, column_name, column_comment, column_type, column_key, is_nullable \n" +
+                    "from information_schema.`COLUMNS`\n" +
+                    "where TABLE_SCHEMA='"+dbName+"'\n" +
+                    "ORDER BY table_name, ORDINAL_POSITION";
+
+            resultSet = statement.executeQuery(sql);
+            while (resultSet.next()) {
+                ColumnInfoDto columnInfoDto = new ColumnInfoDto();
+                columnInfoDto.setDbName(dbName);
+                //表名
+                String tableName = resultSet.getString(1);
+                columnInfoDto.setTableName(tableName);
+                //字段序号
+                String columnIndex = resultSet.getString(2);
+                columnInfoDto.setOrder(columnIndex);
+                //字段英文名
+                String columnName = resultSet.getString(3);
+                columnInfoDto.setColumnName(columnName);
+                //字段中文名
+                String columnComment = resultSet.getString(4);
+                //判断中文名是否为空
+                if (StrUtil.isNotEmpty(columnComment)){
+                    columnInfoDto.setOldColumnName(columnComment);
+                    Map<String, Object> map = PatternUtil.getEnum(columnComment, null, 2);
+                    String desc = (String) map.get("columnComment");
+                    columnInfoDto.setColumnComment(desc);
+                }else{
+                    columnInfoDto.setColumnComment("");
+                }
+                //类型
+                String columnType = resultSet.getString(5);
+                columnInfoDto.setDataType(columnType);
+                //是否为主键
+                if ("PRI".equals(resultSet.getString(6))){
+                    columnInfoDto.setIsIndex("Y");
+                }else{
+                    columnInfoDto.setIsIndex("N");
+                }
+
+                //是否允许为空值
+                if ("YES".equals(resultSet.getString(7))){
+                    columnInfoDto.setColumnISNull("Y");
+                }
+                if ("NO".equals(resultSet.getString(7))){
+                    columnInfoDto.setColumnISNull("N");
+                }
+                //是否为枚举值
+                Map<String, Object> map = PatternUtil.getEnum(columnComment, null, 1);
+                int count = (int) map.get("count");
+                if (count >=2){
+                    columnInfoDto.setColumnIsEnum("Y");
+                }else{
+                    columnInfoDto.setColumnIsEnum("N");
+                }
+                resList.add(columnInfoDto);
+            }
+            return resList;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return resList;
+        } finally {
+            try {
+                ConnectionFactory.releaseResource(connection, null
+                        , resultSet, statement);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }
